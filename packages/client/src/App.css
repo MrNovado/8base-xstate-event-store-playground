@@ -1,5 +1,5 @@
 .App {
-  padding: calc(var(--base-vstep) * 4);
+  padding: calc(var(--vstep) * 4);
 }
 
 .App header {
@@ -13,7 +13,7 @@
 .col {
   display: grid;
   grid-template-columns: 1fr;
-  grid-gap: calc(var(--base-vstep) * 4);
+  grid-gap: calc(var(--vstep) * 4);
 }
 
 @keyframes pulse {
