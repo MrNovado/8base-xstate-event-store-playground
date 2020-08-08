@@ -68,9 +68,9 @@ export default function UsersList() {
   const client = useApolloClient();
 
   /**
-   * NOTE: placing reducre and its initial state outside of its component is a must!
-   * If you don't want to be confused by same actions seemingly appearing to be sent 2/3/4 times in a row.
+   * ========= BUSINESS =======================================================
    */
+
   const [context, send] = React.useReducer(userListReducer, userListInitialState);
 
   React.useEffect(
@@ -94,6 +94,10 @@ export default function UsersList() {
     },
     [context.effect, client],
   );
+
+  /**
+   * ========= PRESENTATION ===================================================
+   */
 
   switch (context.state.kind) {
     case 'setting-up-query':
