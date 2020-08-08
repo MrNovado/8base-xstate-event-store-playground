@@ -25,26 +25,35 @@ const USERS_QUERY = gql`
 `;
 
 type UsersListState = {
-  state: { kind: 'initial' } | { kind: 'loading' } | { kind: 'error'; error: any } | { kind: 'users'; users: any };
+  state:
+    | { kind: 'initial' }
+    | { kind: 'setting-up-query' }
+    | { kind: 'loading'; promise: Promise<any> }
+    | { kind: 'error'; error: any }
+    | { kind: 'users'; users: any };
   effect: 'load-users' | null;
 };
 
 type UsersListActions =
   | { kind: 'load-users' }
+  | { kind: 'set-loading'; promise: Promise<any> }
+  | { kind: 'set-loaded'; users: any[] }
   | { kind: 'set-error'; error: any }
-  | { kind: 'clean-effect' }
-  | { kind: 'set-loaded'; users: any[] };
+  | { kind: 'clean-effect' };
 
 function userListReducer(state: UsersListState, action: UsersListActions): UsersListState {
+  console.info(action);
   switch (action.kind) {
     case 'load-users':
-      return { state: { kind: 'loading' }, effect: 'load-users' };
-    case 'clean-effect':
-      return { ...state, effect: null };
+      return { state: { kind: 'setting-up-query' }, effect: 'load-users' };
+    case 'set-loading':
+      return { state: { kind: 'loading', promise: action.promise }, effect: 'load-users' };
     case 'set-loaded':
       return { ...state, state: { kind: 'users', users: action.users } };
     case 'set-error':
       return { ...state, state: { kind: 'error', error: action.error } };
+    case 'clean-effect':
+      return { ...state, effect: null };
     default:
       return state;
   }
@@ -68,15 +77,17 @@ export default function UsersList() {
     function effectExec() {
       switch (context.effect) {
         case 'load-users': {
-          /**
-           * Feels a little bit more reliable, since client is a single-instance (or at least should be).
-           */
-          new Promise(resolve => resolve(send({ kind: 'clean-effect' })))
-            .then(() => client.query({ query: USERS_QUERY }))
-            .then(
-              ({ data }) => send({ kind: 'set-loaded', users: data?.usersList || [] }),
-              error => send({ kind: 'set-error', error }),
-            );
+          console.warn('EFF', context.effect);
+          send({ kind: 'clean-effect' });
+          send({
+            kind: 'set-loading',
+            promise: Promise.resolve()
+              .then(() => client.query({ query: USERS_QUERY }))
+              .then(
+                ({ data }) => send({ kind: 'set-loaded', users: data?.usersList || [] }),
+                error => send({ kind: 'set-error', error }),
+              ),
+          });
           break;
         }
       }
@@ -85,6 +96,7 @@ export default function UsersList() {
   );
 
   switch (context.state.kind) {
+    case 'setting-up-query':
     case 'loading': {
       return (
         <header className="loading">
