@@ -56,25 +56,26 @@ const userListInitialState: UsersListState = {
 };
 
 export default function UsersList() {
-  const [context, send] = React.useReducer(userListReducer, userListInitialState);
   const client = useApolloClient();
+
+  /**
+   * NOTE: placing reducre and its initial state outside of its component is a must!
+   * If you don't want to be confused by same actions seemingly appearing to be sent 2/3/4 times in a row.
+   */
+  const [context, send] = React.useReducer(userListReducer, userListInitialState);
 
   React.useEffect(
     function effectExec() {
       switch (context.effect) {
         case 'load-users': {
           /**
-           * Feels a little bit more reliable, since client is a single-instance (or at least should be)
+           * Feels a little bit more reliable, since client is a single-instance (or at least should be).
            */
-          Promise.resolve(() => send({ kind: 'clean-effect' }))
+          new Promise(resolve => resolve(send({ kind: 'clean-effect' })))
             .then(() => client.query({ query: USERS_QUERY }))
             .then(
-              function onSuccess({ data }) {
-                send({ kind: 'set-loaded', users: data?.usersList || [] });
-              },
-              function onError(error) {
-                send({ kind: 'set-error', error });
-              },
+              ({ data }) => send({ kind: 'set-loaded', users: data?.usersList || [] }),
+              error => send({ kind: 'set-error', error }),
             );
           break;
         }
