@@ -4,6 +4,9 @@
   "workspaces": [
     "packages/*"
   ],
+  "scripts": {
+    "start": "lerna run --scope @xbase/client start"
+  },
   "devDependencies": {
     "lerna": "^3.22.1"
   }
