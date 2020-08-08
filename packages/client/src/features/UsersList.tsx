@@ -53,13 +53,31 @@ const userListInitialState: UsersListState = {
 
 export default function UsersList() {
   const [context, send] = React.useReducer(userListReducer, userListInitialState);
-  const [getUsers, { loading, error, data }] = useLazyQuery(USERS_QUERY);
+  const [_getUsers, { loading, error, data }] = useLazyQuery(USERS_QUERY);
+
+  // this is just making sure the damn thing is not recreated
+  const getUsers = React.useCallback(_getUsers, []);
 
   React.useEffect(
     function effectExec() {
       switch (context.effect) {
         case 'load-users': {
+          /**
+           * Feels scary the callback will execute the effect again if recreated...
+           * 
+           * It kinda forces you to make context.effect into a mutable?
+           * 
+           * But then again you won't be able to rely on a mutable
+           * when it comes to diffing/snapshoting states or history manipulation.
+           * 
+           * Also feels wonky and verbose.
+           * 
+           * And what if you actually want the callback to change at a certaing point?
+           */
           getUsers();
+          /**
+           * This also feels scary because dispaches aren't instantanious.
+           */
           send('clean-effect');
           break;
         }
