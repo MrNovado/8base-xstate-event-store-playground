@@ -1,6 +1,6 @@
 import React from 'react';
 import { gql } from '8base-react-sdk';
-import { useLazyQuery } from 'react-apollo';
+import { useApolloClient } from 'react-apollo';
 
 const USERS_QUERY = gql`
   query UserList {
@@ -25,79 +25,65 @@ const USERS_QUERY = gql`
 `;
 
 type UsersListState = {
-  state: 'initial' | 'loading' | 'error' | 'users';
+  state: { kind: 'initial' } | { kind: 'loading' } | { kind: 'error'; error: any } | { kind: 'users'; users: any };
   effect: 'load-users' | null;
 };
 
-type UsersListActions = 'load-users' | 'set-error' | 'clean-effect' | 'set-loaded';
+type UsersListActions =
+  | { kind: 'load-users' }
+  | { kind: 'set-error'; error: any }
+  | { kind: 'clean-effect' }
+  | { kind: 'set-loaded'; users: any[] };
 
 function userListReducer(state: UsersListState, action: UsersListActions): UsersListState {
-  switch (action) {
+  switch (action.kind) {
     case 'load-users':
-      return { state: 'loading', effect: 'load-users' };
+      return { state: { kind: 'loading' }, effect: 'load-users' };
     case 'clean-effect':
       return { ...state, effect: null };
     case 'set-loaded':
-      return { ...state, state: 'users' };
+      return { ...state, state: { kind: 'users', users: action.users } };
     case 'set-error':
-      return { ...state, state: 'error' };
+      return { ...state, state: { kind: 'error', error: action.error } };
     default:
       return state;
   }
 }
 
 const userListInitialState: UsersListState = {
-  state: 'initial',
+  state: { kind: 'initial' },
   effect: null,
 };
 
 export default function UsersList() {
   const [context, send] = React.useReducer(userListReducer, userListInitialState);
-  const [_getUsers, { loading, error, data }] = useLazyQuery(USERS_QUERY);
-
-  // this is just making sure the damn thing is not recreated
-  const getUsers = React.useCallback(_getUsers, []);
+  const client = useApolloClient();
 
   React.useEffect(
     function effectExec() {
       switch (context.effect) {
         case 'load-users': {
           /**
-           * Feels scary the callback will execute the effect again if recreated...
-           * 
-           * It kinda forces you to make context.effect into a mutable?
-           * 
-           * But then again you won't be able to rely on a mutable
-           * when it comes to diffing/snapshoting states or history manipulation.
-           * 
-           * Also feels wonky and verbose.
-           * 
-           * And what if you actually want the callback to change at a certaing point?
+           * Feels a little bit more reliable, since client is a single-instance (or at least should be)
            */
-          getUsers();
-          /**
-           * This also feels scary because dispaches aren't instantanious.
-           */
-          send('clean-effect');
+          Promise.resolve(() => send({ kind: 'clean-effect' }))
+            .then(() => client.query({ query: USERS_QUERY }))
+            .then(
+              function onSuccess({ data }) {
+                send({ kind: 'set-loaded', users: data?.usersList || [] });
+              },
+              function onError(error) {
+                send({ kind: 'set-error', error });
+              },
+            );
           break;
         }
       }
     },
-    [context.effect, getUsers],
+    [context.effect, client],
   );
 
-  React.useEffect(
-    function syncWithGqlState() {
-      if (error) {
-        send('set-error');
-      } else if (loading === false) {
-        data && send('set-loaded');
-      }
-    },
-    [error, loading, data],
-  );
-
-  switch (context.state) {
+  switch (context.state.kind) {
     case 'loading': {
       return (
         <header className="loading">
@@ -114,13 +100,20 @@ export default function UsersList() {
     }
 
     case 'error': {
-      return <h2>Users cannot be loaded!</h2>;
+      return (
+        <header>
+          <h2>Users cannot be loaded!</h2>
+          <code>
+            <pre>{JSON.stringify(context.state.error, null, 2)}</pre>
+          </code>
+        </header>
+      );
     }
 
     case 'users': {
       return (
         <div className="col">
-          {data.usersList.items
+          {context.state.users.items
             .concat([
               { id: 'placeholder1', firstName: 'placeholder' },
               { id: 'placeholder2', firstName: 'placeholder' },
@@ -139,6 +132,6 @@ export default function UsersList() {
     }
 
     default:
-      return <button onClick={() => send('load-users')}>Load</button>;
+      return <button onClick={() => send({ kind: 'load-users' })}>Load</button>;
   }
 }
