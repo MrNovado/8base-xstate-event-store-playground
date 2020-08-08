@@ -5,7 +5,8 @@
     "packages/*"
   ],
   "scripts": {
-    "start": "lerna run --scope @xbase/client start"
+    "start": "lerna run --scope @xbase/client start",
+    "build": "lerna run --scope @xbase/client build"
   },
   "devDependencies": {
     "lerna": "^3.22.1"
