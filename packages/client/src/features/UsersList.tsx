@@ -48,26 +48,28 @@ function userListReducer(context: UsersListContext, action: UsersListActions): U
   }
 
   switch (context.state.kind) {
-    case 'initial': {
+    case 'initial':
       switch (action.kind) {
         case 'load-users':
           return { state: { kind: 'setting-up-query' }, effect: 'load-users' };
       }
-    }
-    case 'setting-up-query': {
+      break;
+
+    case 'setting-up-query':
       switch (action.kind) {
         case 'set-loading':
           return { ...context, state: { kind: 'loading', promise: action.promise } };
       }
-    }
-    case 'loading': {
+      break;
+
+    case 'loading':
       switch (action.kind) {
         case 'set-loaded':
           return { ...context, state: { kind: 'users', users: action.users } };
         case 'set-error':
           return { ...context, state: { kind: 'error', error: action.error } };
       }
-    }
+      break;
   }
 
   return context;
@@ -95,7 +97,7 @@ export default function UsersList() {
           send({
             kind: 'set-loading',
             promise: Promise.resolve()
-              .then(() => client.query({ query: USERS_QUERY }))
+              .then(() => client.query({ query: USERS_QUERY, fetchPolicy: 'no-cache' }))
               .then(
                 ({ data }) => send({ kind: 'set-loaded', users: data?.usersList || [] }),
                 error => send({ kind: 'set-error', error }),
@@ -162,6 +164,6 @@ export default function UsersList() {
     }
 
     default:
-      return <button onClick={() => send({ kind: 'load-users' })}>Load</button>;
+      return <button onClick={() => send({ kind: 'load-users' })}>Load (react-based)</button>;
   }
 }
