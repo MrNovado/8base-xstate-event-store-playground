@@ -24,7 +24,7 @@ const USERS_QUERY = gql`
   }
 `;
 
-type UsersListState = {
+type UsersListContext = {
   state:
     | { kind: 'initial' }
     | { kind: 'setting-up-query' }
@@ -41,25 +41,39 @@ type UsersListActions =
   | { kind: 'set-error'; error: any }
   | { kind: 'clean-effect' };
 
-function userListReducer(state: UsersListState, action: UsersListActions): UsersListState {
-  console.info(action);
+function userListReducer(context: UsersListContext, action: UsersListActions): UsersListContext {
   switch (action.kind) {
-    case 'load-users':
-      return { state: { kind: 'setting-up-query' }, effect: 'load-users' };
-    case 'set-loading':
-      return { state: { kind: 'loading', promise: action.promise }, effect: 'load-users' };
-    case 'set-loaded':
-      return { ...state, state: { kind: 'users', users: action.users } };
-    case 'set-error':
-      return { ...state, state: { kind: 'error', error: action.error } };
     case 'clean-effect':
-      return { ...state, effect: null };
-    default:
-      return state;
+      return { ...context, effect: null };
   }
+
+  switch (context.state.kind) {
+    case 'initial': {
+      switch (action.kind) {
+        case 'load-users':
+          return { state: { kind: 'setting-up-query' }, effect: 'load-users' };
+      }
+    }
+    case 'setting-up-query': {
+      switch (action.kind) {
+        case 'set-loading':
+          return { state: { kind: 'loading', promise: action.promise }, effect: 'load-users' };
+      }
+    }
+    case 'loading': {
+      switch (action.kind) {
+        case 'set-loaded':
+          return { ...context, state: { kind: 'users', users: action.users } };
+        case 'set-error':
+          return { ...context, state: { kind: 'error', error: action.error } };
+      }
+    }
+  }
+
+  return context;
 }
 
-const userListInitialState: UsersListState = {
+const userListInitialState: UsersListContext = {
   state: { kind: 'initial' },
   effect: null,
 };
@@ -77,7 +91,6 @@ export default function UsersList() {
     function effectExec() {
       switch (context.effect) {
         case 'load-users': {
-          console.warn('EFF', context.effect);
           send({ kind: 'clean-effect' });
           send({
             kind: 'set-loading',
