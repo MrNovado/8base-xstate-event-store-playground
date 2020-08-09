@@ -57,7 +57,7 @@ function userListReducer(context: UsersListContext, action: UsersListActions): U
     case 'setting-up-query': {
       switch (action.kind) {
         case 'set-loading':
-          return { state: { kind: 'loading', promise: action.promise }, effect: 'load-users' };
+          return { ...context, state: { kind: 'loading', promise: action.promise } };
       }
     }
     case 'loading': {
