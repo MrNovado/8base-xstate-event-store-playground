@@ -101,7 +101,6 @@ export default function UsersList() {
    */
 
   switch (true) {
-    case state.matches('setting-up-query'):
     case state.matches('loading'): {
       return (
         <header className="loading">
