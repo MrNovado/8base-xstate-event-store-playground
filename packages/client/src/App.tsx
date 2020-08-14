@@ -1,8 +1,6 @@
 import React from 'react';
 import { AppProvider } from '8base-react-sdk';
-
-import UsersList from './features/UsersList';
-import UsersListXstate from './features/UsersList-X';
+import UsersListPage from './pages/UsersListPage';
 import './App.css';
 
 const { REACT_APP_WORKSPACE_URL } = process.env;
@@ -32,17 +30,7 @@ function App() {
             );
           }
 
-          return (
-            <article>
-              <header>
-                <h1>Users List</h1>
-              </header>
-              <section className="col-2">
-                <UsersList />
-                <UsersListXstate />
-              </section>
-            </article>
-          );
+          return <UsersListPage />;
         }}
       </AppProvider>
     </div>
